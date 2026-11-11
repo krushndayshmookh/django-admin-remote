@@ -15,7 +15,7 @@ It is meant for the case where you have admin access to a Django site but no API
 pip install django-admin-remote
 ```
 
-Python 3.9 or newer. Depends on `requests` and `beautifulsoup4`.
+Python 3.10 or newer. Depends on `requests` and `beautifulsoup4`.
 
 ## Quickstart
 

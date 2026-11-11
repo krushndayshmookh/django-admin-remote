@@ -7,7 +7,7 @@ name = "django-admin-remote"
 version = "0.1.0"
 description = "Read and edit a remote Django admin site over HTTP by parsing its stock HTML. Nothing to install on the server."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Krushn Dayshmookh" }]
@@ -19,7 +19,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
