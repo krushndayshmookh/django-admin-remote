@@ -1,0 +1,87 @@
+<html><body><div id="content"><form>
+<div class="form-row field-question_title"><div><div class="flex-container">
+<label class="required" for="id_question_title">Question title:</label>
+<input type="text" name="question_title" value="TEST_sum_two_numbers" class="vTextField" id="id_question_title">
+</div></div></div>
+<div class="form-row field-question_text"><div><div class="flex-container">
+<label for="id_question_text">Question text:</label>
+<div class="django-ckeditor-widget">
+<textarea name="question_text" id="id_question_text">
+[TEST question created for a test. Do not use.]&lt;br /&gt;
+&lt;br /&gt;
+Read two integers &lt;code&gt;a&lt;/code&gt; and &lt;code&gt;b&lt;/code&gt; from standard input and print their sum.</textarea>
+</div></div></div></div>
+<div class="form-row field-usage"><div><div class="flex-container">
+<label for="id_usage">Usage:</label>
+<select name="usage" id="id_usage" multiple="">
+<option value="1" selected="">Normal</option>
+<option value="3">Competitive</option>
+</select></div></div></div>
+<div class="form-row field-question_type"><div><div class="flex-container">
+<label>Question type:</label><div class="readonly">Coding</div></div></div></div>
+<div class="form-row field-peer_reviewed"><div><div class="flex-container">
+<input type="checkbox" name="peer_reviewed" id="id_peer_reviewed"><label for="id_peer_reviewed">Peer reviewed</label>
+</div></div></div>
+<div class="form-row field-hash"><div><div class="flex-container"><label>Hash:</label><div class="readonly">j171h0u3bqnw</div></div></div></div>
+<div class="form-row field-copy_question_share_url"><div><div class="flex-container"><label>Copy:</label>
+<div class="readonly"><input text="text" id="copy-question-share-url-29903" value="https://my.example.com/question/j171h0u3bqnw"><a href="#" class="addlink">Copy</a></div></div></div></div>
+<div class="form-row field-created_by"><div><div class="flex-container"><label>Created by:</label><div class="readonly"><a href="/admin/auth/user/1/change/">alice</a></div></div></div></div>
+<div class="form-row field-verified"><div><div class="flex-container">
+<label>Verified:</label>
+<div class="readonly"><img src="/static/admin/img/icon-yes.d2f9f035226a.svg" alt="True"></div>
+</div></div></div>
+<div class="form-row field-difficulty_type"><div><div class="flex-container">
+<label>Difficulty type:</label>
+<div class="readonly">Beginner</div>
+</div></div></div>
+<div class="form-row field-constraints"><div><div class="flex-container"><label>Constraints:</label>
+<div class="readonly">-1000 &amp;lt;= a, b &amp;lt;= 1000<br>second line</div></div></div></div>
+<div class="js-inline-admin-formset inline-group" id="question_language_mappings-group"><table><tbody>
+<tr class="form-row has_original" id="question_language_mappings-0">
+<td class="original"><p>QuestionLanguageMapping object (88492)</p>
+<input type="hidden" name="question_language_mappings-0-id" value="88492" id="id_question_language_mappings-0-id">
+<input type="hidden" name="question_language_mappings-0-question" value="29903">
+</td>
+<td class="field-language_id"><p>Python (3.13.1)</p></td>
+<td class="field-cpu_time_limit"><p>2.0</p></td>
+<td class="field-memory_limit"><p>256000</p></td>
+<td class="field-demo_code_and_function_code_form_url"><p><a href="/admin/quiz/questionlanguagemapping/88492/change/">url for selected language</a></p></td>
+<td class="delete"></td></tr>
+</tbody></table></div>
+<div class="js-inline-admin-formset inline-group" id="question_test_case_mappings-group"><table><tbody>
+<tr class="form-row has_original" id="question_test_case_mappings-0">
+<td class="original"><p>QuestionTestCaseMapping object (107478)</p>
+<input type="hidden" name="question_test_case_mappings-0-id" value="107478">
+<input type="hidden" name="question_test_case_mappings-0-question" value="29903"></td>
+<td class="field-input"><p>2 3<br></p></td>
+<td class="field-input_file"><p>-</p></td>
+<td class="field-output"><p>5<br></p></td>
+<td class="field-title"><p>Sample</p></td>
+<td class="field-hidden"><p><img src="/static/admin/img/icon-no.439e821418cd.svg" alt="False"></p></td>
+<td class="field-admin_url"><p><a href="/admin/quiz/questiontestcasemapping/107478/change/">admin url</a></p></td>
+<td class="delete"></td></tr>
+</tbody></table></div>
+<div class="js-inline-admin-formset inline-group" id="question_topic_mappings-group"><table><tbody>
+<tr class="form-row has_original" id="question_topic_mappings-0">
+<td class="original"><p>TEST_sum_two_numbers - [29903] has Python Input topic</p>
+<input type="hidden" name="question_topic_mappings-0-id" value="42373">
+<input type="hidden" name="question_topic_mappings-0-question" value="29903"></td>
+<td class="field-topic"><p><a href="/admin/quiz/topic/4476/change/">Python Input</a></p></td>
+<td class="field-question_difficulty_type"><select name="question_topic_mappings-0-question_difficulty_type">
+<option value="1" selected="">Beginner</option><option value="2">Easy</option></select></td>
+<td class="field-question_utility_type"><select name="question_topic_mappings-0-question_utility_type">
+<option value="1">Learning</option><option value="2" selected="">Application</option></select></td>
+<td class="field-relevance"><input type="number" name="question_topic_mappings-0-relevance" value="0" class="vIntegerField"></td>
+<td class="field-main_topic"><input type="checkbox" name="question_topic_mappings-0-main_topic"></td>
+<td class="field-mandatory"><input type="checkbox" name="question_topic_mappings-0-mandatory" checked></td>
+<td class="field-admin_url"><p><a href="/admin/quiz/questiontopicmapping/42373/change/">admin url</a></p></td>
+<td class="delete"><input type="checkbox" name="question_topic_mappings-0-DELETE"></td></tr>
+<tr class="form-row empty-form" id="question_topic_mappings-empty"><td class="field-relevance"><input type="number" name="question_topic_mappings-__prefix__-relevance" value="0"></td></tr>
+</tbody></table></div>
+<div class="js-inline-admin-formset inline-group" id="question_statistic-group"><table><tbody>
+<tr class="form-row has_original" id="question_statistic-0">
+<td class="original"><p>stats</p><input type="hidden" name="question_statistic-0-id" value="25377"></td>
+<td class="field-attempt_count"><p>4</p></td><td class="field-solved_count"><p>1</p></td>
+<td class="field-admin_url"><p><a href="/admin/quiz/questionstatistic/25377/change/">admin url</a></p></td></tr>
+</tbody></table></div>
+</form></div></body></html>
