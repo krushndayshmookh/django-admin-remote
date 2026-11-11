@@ -166,7 +166,3 @@ The tests run offline against saved admin HTML and a fake HTTP transport.
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-## License
-
-MIT. See [LICENSE](LICENSE).
