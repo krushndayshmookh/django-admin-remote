@@ -3,6 +3,17 @@
 All notable changes to this project are listed here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## 0.2.0 - 2026-11-26
+
+### Added
+
+- File uploads. `AdminForm.file_fields`, `has_file()` and `set_file(name, filename, content, content_type)` attach a file to a file input, and `add_row` takes `(filename, content[, content_type])` for an inline file input. A form with an attached file is submitted as `multipart/form-data`.
+- `AdminClient.post()` and `request()` take `files=` (passed to `requests`); a redirect after the POST is followed with a plain GET.
+
+### Changed
+
+- A file input with nothing attached is still left out of the POST (keeps the stored file), as before.
+
 ## 0.1.0 - 2026-11-11
 
 First release.

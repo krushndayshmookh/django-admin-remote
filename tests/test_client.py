@@ -264,3 +264,18 @@ def test_parse_datetime_uses_the_client_zone(make_client):
     client, _ = make_client(lambda call: (200, {}, INDEX_PAGE))
     with pytest.raises(ValueError):
         client.parse_datetime("Oct. 30, 2026, noon")
+
+
+def test_post_with_files_is_multipart(make_client):
+    client, transport = make_client(lambda call: (200, {}, "ok"))
+    client.post("/admin/app/thing/5/change/", [("title", "New")], files={"upload": ("a.txt", b"hello", "text/plain")})
+    (post,) = transport.calls
+    assert post["headers"]["Content-Type"].startswith("multipart/form-data")
+
+
+def test_post_without_files_stays_urlencoded(make_client):
+    client, transport = make_client(lambda call: (200, {}, "ok"))
+    client.post("/admin/app/thing/5/change/", [("title", "New")])
+    (post,) = transport.calls
+    assert post["headers"]["Content-Type"] == "application/x-www-form-urlencoded"
+    assert post["form"] == [("title", "New")]

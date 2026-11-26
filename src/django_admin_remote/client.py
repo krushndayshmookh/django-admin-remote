@@ -126,21 +126,22 @@ class AdminClient:
         return path.rstrip("/") == self.login_path.rstrip("/") or "login" in path.strip("/").split("/")
 
     # ---------- HTTP ----------
-    def _send(self, method: str, url: str, params: Any, data: Any, referer: str) -> requests.Response:
+    def _send(self, method: str, url: str, params: Any, data: Any, referer: str,
+              files: Any = None) -> requests.Response:
         if self._last is not None:
             wait = self.delay - (time.monotonic() - self._last)
             if wait > 0:
                 time.sleep(wait)
         headers = {"Referer": referer} if method == "POST" else {}
         try:
-            return self.http.request(method, url, params=params, data=data, headers=headers,
-                                     timeout=self.timeout, allow_redirects=False)
+            return self.http.request(method, url, params=params, data=data, files=files or None,
+                                     headers=headers, timeout=self.timeout, allow_redirects=False)
         finally:
             self._last = time.monotonic()
             self.requests_made += 1
 
     def request(self, method: str, path: str, params: Optional[Mapping[str, Any]] = None,
-                data: Optional[FormData] = None) -> Tuple[str, str]:
+                data: Optional[FormData] = None, files: Optional[Mapping[str, Any]] = None) -> Tuple[str, str]:
         """Send one request and follow its redirects. Returns ``(final_url, body)``.
 
         Raises NotLoggedIn if the site redirects to a login page or to another host,
@@ -151,7 +152,7 @@ class AdminClient:
         referer = url
         redirects = failures = 0
         while True:
-            r = self._send(method, url, params, data, referer)
+            r = self._send(method, url, params, data, referer, files)
             if r.status_code in _REDIRECTS:
                 target = urljoin(r.url or url, r.headers.get("Location", ""))
                 if method == "POST" and r.status_code in (307, 308):
@@ -162,7 +163,7 @@ class AdminClient:
                 redirects += 1
                 if redirects > self.max_redirects:
                     raise AdminHTTPError(f"too many redirects from {url}", r.status_code, url)
-                url, method, params, data = target, "GET", None, None
+                url, method, params, data, files = target, "GET", None, None, None
                 continue
             if r.status_code >= 500 and method == "GET" and failures < self.get_retries:
                 failures += 1
@@ -177,15 +178,18 @@ class AdminClient:
         """GET a page and return its HTML."""
         return self.request("GET", path, params=params)[1]
 
-    def post(self, path: str, data: FormData) -> Tuple[str, str]:
+    def post(self, path: str, data: FormData, files: Optional[Mapping[str, Any]] = None) -> Tuple[str, str]:
         """POST form data. Returns ``(final_url, body)`` of the page the site lands on.
 
         ``data`` must contain ``csrfmiddlewaretoken`` (AdminForm takes care of that). The
         Referer header Django's CSRF check wants on HTTPS is added. A POST is sent once
         and never retried: a repeated POST could create a second object.
+
+        ``files`` maps file field names to ``(filename, content, content_type)``; with it the
+        body is sent as ``multipart/form-data`` (what a browser does when a file is chosen).
         """
         self.posts_made += 1
-        return self.request("POST", path, data=data)
+        return self.request("POST", path, data=data, files=files)
 
     # ---------- login ----------
     def login(self, username: str, password: str) -> None:

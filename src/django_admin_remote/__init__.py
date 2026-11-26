@@ -2,7 +2,7 @@
 
 Nothing is installed on the server. See the README for a quickstart.
 """
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from .client import AdminClient
 from .dates import parse_admin_datetime

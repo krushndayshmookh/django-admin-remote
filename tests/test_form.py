@@ -50,8 +50,9 @@ class FakeClient:
     def request(self, method, path):
         return self.lands_on or path, PAGE
 
-    def post(self, path, data):
+    def post(self, path, data, **kwargs):
         self.posted = (path, data)
+        self.files = kwargs.get("files")
         return self.lands_on or path, self.answer
 
 
@@ -158,3 +159,44 @@ def test_base_url_is_only_stripped_as_a_whole_prefix():
     assert AdminForm(c, other, PAGE).path == other
     assert AdminForm(c, "https://admin.example.com", PAGE).path == "/"
     assert AdminForm(FakeClient(), "https://x.test/admin/a/b/1/change/", PAGE).path == "https://x.test/admin/a/b/1/change/"
+
+
+INLINE_FILE_PAGE = """
+<html><body><div id="content"><form method="post"><input type="hidden" name="csrfmiddlewaretoken" value="tok">
+<input type="hidden" name="cases-TOTAL_FORMS" value="0"><input type="hidden" name="cases-INITIAL_FORMS" value="0">
+<input type="hidden" name="cases-MIN_NUM_FORMS" value="0"><input type="hidden" name="cases-MAX_NUM_FORMS" value="10">
+<table><tr class="empty-form"><td><textarea name="cases-__prefix__-output"></textarea>
+<input type="file" name="cases-__prefix__-output_file"><input type="file" name="cases-__prefix__-locked_file" disabled></td></tr></table>
+<input type="submit" name="_continue" value="Save and continue editing"></form></div></body></html>
+"""
+
+
+def test_file_input_is_known_but_not_posted_as_a_field():
+    f = form()
+    assert f.has_file("upload") and not f.has("upload")
+    c = FakeClient()
+    AdminForm(c, "/admin/app/thing/5/change/", PAGE).submit()
+    assert c.files is None and "upload" not in dict(c.posted[1])
+
+
+def test_set_file_sends_multipart_files():
+    c = FakeClient()
+    f = AdminForm(c, "/admin/app/thing/5/change/", PAGE)
+    f.set_file("upload", "big.txt", "x" * 3000, "text/plain")
+    f.submit()
+    assert c.files == {"upload": ("big.txt", b"x" * 3000, "text/plain")}
+    assert ("title", "Old") in c.posted[1]
+
+
+def test_set_file_on_unknown_field_raises():
+    with pytest.raises(FormError):
+        form().set_file("nope", "a.txt", b"1")
+
+
+def test_add_row_takes_a_file_for_an_inline_file_input():
+    c = FakeClient()
+    f = AdminForm(c, "/admin/app/question/9/change/", INLINE_FILE_PAGE)
+    i = f.add_row("cases", {"output": "", "output_file": ("out.txt", "long output")})
+    assert f.has_file(f"cases-{i}-output_file") and not f.has_file(f"cases-{i}-locked_file")
+    f.submit()
+    assert c.files == {"cases-0-output_file": ("out.txt", b"long output", "application/octet-stream")}

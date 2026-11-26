@@ -7,7 +7,7 @@ Save in the browser.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from bs4 import Tag
 
@@ -55,6 +55,13 @@ def _default_values(el: Tag) -> Optional[List[str]]:
     return [el.get("value", "")]
 
 
+def _is_file(el: Tag) -> bool:
+    return el.name == "input" and (el.get("type") or "").lower() == "file" and not el.has_attr("disabled")
+
+
+FileValue = Union[Tuple[str, Union[str, bytes]], Tuple[str, Union[str, bytes], str]]
+
+
 class AdminForm:
     """One admin add or change form.
 
@@ -73,6 +80,8 @@ class AdminForm:
         buttons: names of the submit buttons on the form.
         messages: texts of the admin's message list (for example "... was changed successfully.").
         errors: validation errors shown on the page.
+        file_fields: names of the file inputs the form would post (see :meth:`set_file`).
+        files: ``{name: (filename, content, content_type)}`` attached so far.
     """
 
     def __init__(self, client: Any, path: str, text: Optional[str] = None) -> None:
@@ -109,6 +118,8 @@ class AdminForm:
         self.templates: Dict[str, Dict[str, Tag]] = {}
         self.buttons: List[str] = []
         self._button_values: Dict[str, str] = {}
+        self.file_fields: set = set()
+        self.files: Dict[str, Tuple[str, bytes, str]] = {}
         self.messages = [li.get_text(" ", strip=True) for li in doc.select("ul.messagelist li")]
         self.errors = [e.get_text(" ", strip=True) for e in doc.select("p.errornote, ul.errorlist li")]
         if form is None:
@@ -128,6 +139,9 @@ class AdminForm:
             m = re.match(r"(.+)-__prefix__-(.+)$", name)
             if m:
                 self.templates.setdefault(m.group(1), {})[m.group(2)] = el
+                continue
+            if _is_file(el):
+                self.file_fields.add(name)
                 continue
             vals = _default_values(el)
             if vals is None:
@@ -240,6 +254,22 @@ class AdminForm:
         else:
             self.fields[name] = [self._resolve(name, value)]
 
+    def has_file(self, name: str) -> bool:
+        """True if the form has a file input with this name that a browser would post."""
+        return name in self.file_fields
+
+    def set_file(self, name: str, filename: str, content: Union[str, bytes],
+                 content_type: str = "application/octet-stream") -> None:
+        """Attach a file to a file input, as choosing a file in the browser would.
+
+        ``content`` is bytes, or text that is sent UTF-8 encoded. The form is then posted as
+        ``multipart/form-data``. Raises FormError if the page has no such file input.
+        """
+        if name not in self.file_fields:
+            raise FormError(f"file field {name!r} is not on {self.path}")
+        data = content.encode("utf-8") if isinstance(content, str) else bytes(content)
+        self.files[name] = (filename, data, content_type)
+
     def set_if_present(self, name: str, value: Any) -> bool:
         """Set the field if it is editable here and value is not None. Returns whether it was set."""
         if name in self.fields and value is not None:
@@ -253,6 +283,8 @@ class AdminForm:
         The row is built from the formset's ``__prefix__`` empty-form template, so hidden
         fields such as the parent key keep their defaults, and TOTAL_FORMS is increased.
         ``values`` maps the short field names of the inline to values (see :meth:`set`).
+        A file input of the inline takes ``(filename, content)`` or
+        ``(filename, content, content_type)`` (see :meth:`set_file`).
         """
         tmpl = self.templates.get(prefix)
         if tmpl is None or not self.has_inline(prefix):
@@ -266,6 +298,11 @@ class AdminForm:
             raise FormError(f"inline {prefix!r} has no field(s) {sorted(unknown)}. Has: {sorted(tmpl)}")
         for field, el in tmpl.items():
             name = f"{prefix}-{index}-{field}"
+            if _is_file(el):
+                self.file_fields.add(name)
+                if field in values and values[field] is not None:
+                    self.set_file(name, *values[field])
+                continue
             vals = _default_values(el)
             if vals is None:
                 continue
@@ -298,7 +335,10 @@ class AdminForm:
             raise FormError(f"button {button!r} not on {self.path}. Has: {self.buttons}")
         data = [(n, v) for n, vals in self.fields.items() for v in vals]
         data.append((button, self._button_values.get(button, "1")))
-        url, text = self.client.post(self.path, data)
+        if self.files:
+            url, text = self.client.post(self.path, data, files=dict(self.files))
+        else:
+            url, text = self.client.post(self.path, data)
         result = AdminForm(self.client, url, text)
         if result.errors:
             raise FormError(f"{self.path} rejected: {result.errors[:6]}")

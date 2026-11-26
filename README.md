@@ -67,13 +67,14 @@ When the session is missing or has expired the client raises `NotLoggedIn`. It n
 | `AdminClient(base_url, cookies=None, storage_state=None, delay=0.4, user_agent=None, timeout=60, tz=None, login_path="/admin/login/", session=None)` | One client per site. Waits `delay` seconds between requests. |
 | `client.login(username, password)` | Log in through the admin login form. |
 | `client.get(path, params=None)` | GET a page, returns the HTML. |
-| `client.post(path, data)` | POST form data, returns `(final_url, html)`. Never retried. |
+| `client.post(path, data, files=None)` | POST form data, returns `(final_url, html)`. With `files` the body is `multipart/form-data`. Never retried. |
 | `client.changelist(path, limit=None, params=None, **filters)` | Iterator over the ids of a change list, all pages. |
 | `client.read(path)` | `parse_change_form` of a page: `{"fields", "inlines", "logged_out"}`. |
 | `client.form(path)` | An `AdminForm` for an add or change page. |
 | `client.parse_datetime(text)` | `parse_admin_datetime` with the client's `tz`. |
 | `AdminForm.has / get / set / set_if_present` | Read and change the values that will be posted. |
 | `AdminForm.add_row(prefix, values) / delete_row(prefix, index)` | Inline formset rows. |
+| `AdminForm.has_file(name) / set_file(name, filename, content, content_type)` | Attach a file to a file input; the form is then posted as multipart. |
 | `AdminForm.total(prefix) / initial(prefix) / row_text / row_link_id` | Inspect inline formsets. |
 | `AdminForm.readonly(name) / object_id()` | Displayed read-only text, primary key from the URL. |
 | `AdminForm.submit(button="_continue")` | POST the form, returns the resulting page as an `AdminForm`. |
@@ -96,6 +97,17 @@ form.submit()
 ```
 
 `add_row` copies the formset's `__prefix__` template row, so hidden fields keep their defaults, and it updates `TOTAL_FORMS`. It refuses to go past `MAX_NUM_FORMS`.
+
+### File uploads
+
+File inputs are listed in `form.file_fields` and are not posted unless you attach a file, which keeps the stored file, like a browser. Attach one with `set_file`, or pass `(filename, content)` or `(filename, content, content_type)` for a file input in `add_row`. Text content is sent UTF-8 encoded. Any attached file makes the submit a `multipart/form-data` POST.
+
+```python
+form = admin.form("/admin/library/book/3/change/")
+form.set_file("cover", "cover.png", png_bytes, "image/png")
+form.add_row("attachment_set", {"title": "Errata", "document": ("errata.txt", "Page 4: read 12 for 21")})
+form.submit()
+```
 
 ### Dates
 
@@ -133,7 +145,7 @@ What cannot be recovered: anything the admin formats before display. Dates come 
 - **Be polite to production sites.** Every call is a real page render on someone's server. Keep the default delay or raise it, use `limit`, and do not run it in parallel against a site you do not operate. Only use it where you are allowed to automate.
 - **POSTs are never retried.** If a POST fails or times out, the client raises and leaves it to you: the save may or may not have happened, and a blind repeat could create a duplicate. A GET that gets a 5xx answer is retried a few times.
 - **A submit sends what the page showed.** Like a browser, the form posts every field back. If someone else edits the same object between your load and your submit, their change is overwritten.
-- No file uploads. File inputs are left out of the POST, which keeps the existing file.
+- A file input with nothing attached is left out of the POST, which keeps the existing file. Clearing a file (the admin's "Clear" checkbox) is an ordinary checkbox field.
 - No JavaScript. Widgets that load their choices by AJAX (`autocomplete_fields`) only list the options present in the HTML; set those fields to the primary key directly. `raw_id_fields` are plain text inputs and work.
 - Change list parsing returns ids, the count and the pages, not the column values. Read each object for its data.
 - The total count and the dates assume an English-language admin with default formats.
