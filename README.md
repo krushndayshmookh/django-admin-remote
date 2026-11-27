@@ -77,10 +77,11 @@ When the session is missing or has expired the client raises `NotLoggedIn`. It n
 | `AdminForm.has_file(name) / set_file(name, filename, content, content_type)` | Attach a file to a file input; the form is then posted as multipart. |
 | `AdminForm.total(prefix) / initial(prefix) / row_text / row_link_id` | Inspect inline formsets. |
 | `AdminForm.readonly(name) / object_id()` | Displayed read-only text, primary key from the URL. |
-| `AdminForm.submit(button="_continue")` | POST the form, returns the resulting page as an `AdminForm`. |
+| `AdminForm.submit(button="_continue", check_banners=False, require_success=False)` | POST the form, returns the resulting page as an `AdminForm`. |
+| `AdminForm.banners() / success_messages / check_banners(require_success=False, allow_warnings=False)` | The admin message list by level, and a check that raises `AdminBannerError` on an error or warning banner. |
 | `parse_change_form(html)`, `parse_changelist(html)` | The parsers, usable on HTML you fetched yourself. |
 | `parse_admin_datetime(text, tz)` | "Nov. 11, 2026, 1:43 p.m." to `2026-11-11T13:43:00+01:00`. |
-| `NotLoggedIn`, `FormError`, `AdminHTTPError` | Exceptions, all subclasses of `AdminError`. |
+| `NotLoggedIn`, `FormError`, `AdminBannerError`, `AdminHTTPError` | Exceptions, all subclasses of `AdminError`. `AdminBannerError` is a `FormError`. |
 
 Every public function and method has a docstring with the details.
 
@@ -108,6 +109,24 @@ form.set_file("cover", "cover.png", png_bytes, "image/png")
 form.add_row("attachment_set", {"title": "Errata", "document": ("errata.txt", "Page 4: read 12 for 21")})
 form.submit()
 ```
+
+### Error banners
+
+The admin sometimes answers a POST with 200 and an error banner (a message at the error level, `p.errornote`, `ul.errorlist`) instead of redirecting. `submit()` already raises `FormError` for `errornote` and `errorlist`. For the message list too, and to insist on a success message, check the answer:
+
+```python
+from django_admin_remote import AdminBannerError
+
+saved = form.submit("_continue", check_banners=True, require_success=True)
+# or on any page you hold:
+try:
+    saved.check_banners(require_success=True)
+except AdminBannerError as err:
+    print(err.errors, err.warnings)
+print(saved.success_messages)       # ["The thing "x" was changed successfully."]
+```
+
+Warning-level messages raise too, unless `allow_warnings=True`. Without `check_banners=True`, `submit()` behaves as in 0.2.
 
 ### Dates
 

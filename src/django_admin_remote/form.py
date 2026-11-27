@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from bs4 import Tag
 
-from .exceptions import FormError, NotLoggedIn
+from .exceptions import AdminBannerError, FormError, NotLoggedIn
 from .parse import is_login_page, soup
 
 SKIP_TYPES = {"submit", "button", "file", "image", "reset"}
@@ -318,7 +318,8 @@ class AdminForm:
         """Tick the DELETE box of a saved inline row. It is deleted when the form is submitted."""
         self.set(f"{prefix}-{index}-DELETE", True)
 
-    def submit(self, button: str = "_continue") -> "AdminForm":
+    def submit(self, button: str = "_continue", check_banners: bool = False,
+               require_success: bool = False) -> "AdminForm":
         """POST the form by "pressing" the named submit button.
 
         The default ``_continue`` is "Save and continue editing", which lands back on the
@@ -328,6 +329,10 @@ class AdminForm:
         Returns the page the admin answered with as a new AdminForm. Raises FormError if
         the button does not exist or the admin reports validation errors. The POST is sent
         once and never retried.
+
+        With ``check_banners=True`` the answer is also run through :meth:`check_banners`
+        (``require_success`` is passed on), so an error or warning banner that came with a
+        200 page raises :class:`AdminBannerError`. Off by default.
         """
         if self.form is None:
             raise FormError(f"no form found on {self.path}")
@@ -342,7 +347,46 @@ class AdminForm:
         result = AdminForm(self.client, url, text)
         if result.errors:
             raise FormError(f"{self.path} rejected: {result.errors[:6]}")
+        if check_banners:
+            result.check_banners(require_success=require_success)
         return result
+
+    def banners(self) -> Dict[str, List[str]]:
+        """The admin's message list by level: ``{"success": [...], "warning": [...], "error": [...], "info": [...]}``.
+
+        The level is the CSS class of the message (``success``, ``warning``, ``error``);
+        a message with none of them counts as ``info``.
+        """
+        out: Dict[str, List[str]] = {"success": [], "warning": [], "error": [], "info": []}
+        for li in self.doc.select("ul.messagelist li"):
+            level = next((c for c in li.get("class") or [] if c in out), "info")
+            out[level].append(li.get_text(" ", strip=True))
+        return out
+
+    @property
+    def success_messages(self) -> List[str]:
+        """Texts of the success messages on the page (for example "... was changed successfully.")."""
+        return self.banners()["success"]
+
+    def check_banners(self, require_success: bool = False, allow_warnings: bool = False) -> Dict[str, List[str]]:
+        """Raise :class:`AdminBannerError` if the page carries an error banner.
+
+        Error banners are error-level messages, ``p.errornote`` and ``ul.errorlist`` items.
+        Warning-level messages count too unless ``allow_warnings`` is true. With
+        ``require_success=True`` a page without any success message raises as well (a save
+        that the admin did not confirm). Returns :meth:`banners` when the page is fine.
+        """
+        seen = self.banners()
+        errors = seen["error"] + [e for e in self.errors if e not in seen["error"]]
+        warnings = [] if allow_warnings else seen["warning"]
+        bad = errors + warnings
+        if bad:
+            raise AdminBannerError(f"{self.path}: the admin reported: {'; '.join(bad)}",
+                                   errors, warnings, seen["success"])
+        if require_success and not seen["success"]:
+            raise AdminBannerError(f"{self.path}: the admin did not confirm the change (no success message)",
+                                   errors, warnings, seen["success"])
+        return seen
 
     def object_id(self) -> Optional[int]:
         """Numeric primary key from the page path, None on an add page."""

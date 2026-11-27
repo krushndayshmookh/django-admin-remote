@@ -14,6 +14,24 @@ class FormError(AdminError):
     """A form could not be filled in or the admin rejected it with validation errors."""
 
 
+class AdminBannerError(FormError):
+    """The admin answered 200 with an error or warning banner (or no success message) instead of redirecting.
+
+    A FormError subclass, so ``except FormError`` still catches it.
+
+    Attributes:
+        errors: texts of the error banners (message list at the error level, errornote, errorlist).
+        warnings: texts of the warning banners.
+        success: texts of the success messages the page showed.
+    """
+
+    def __init__(self, message: str, errors=(), warnings=(), success=()) -> None:
+        super().__init__(message)
+        self.errors = list(errors)
+        self.warnings = list(warnings)
+        self.success = list(success)
+
+
 class AdminHTTPError(AdminError):
     """The site answered with an HTTP error status.
 

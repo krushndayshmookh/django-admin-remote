@@ -2,17 +2,18 @@
 
 Nothing is installed on the server. See the README for a quickstart.
 """
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 from .client import AdminClient
 from .dates import parse_admin_datetime
-from .exceptions import AdminError, AdminHTTPError, FormError, NotLoggedIn
+from .exceptions import AdminBannerError, AdminError, AdminHTTPError, FormError, NotLoggedIn
 from .form import AdminForm
 from .parse import field_value, parse_change_form, parse_changelist
 
 __all__ = [
     "AdminClient",
     "AdminForm",
+    "AdminBannerError",
     "AdminError",
     "AdminHTTPError",
     "FormError",

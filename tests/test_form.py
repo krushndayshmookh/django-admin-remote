@@ -1,6 +1,6 @@
 import pytest
 
-from django_admin_remote import AdminForm, FormError, NotLoggedIn
+from django_admin_remote import AdminBannerError, AdminForm, FormError, NotLoggedIn
 
 PAGE = """
 <html><body><div id="content">
@@ -200,3 +200,49 @@ def test_add_row_takes_a_file_for_an_inline_file_input():
     assert f.has_file(f"cases-{i}-output_file") and not f.has_file(f"cases-{i}-locked_file")
     f.submit()
     assert c.files == {"cases-0-output_file": ("out.txt", b"long output", "application/octet-stream")}
+
+
+def _with_messages(*items):
+    lis = "".join(f'<li class="{c}">{t}</li>' for c, t in items)
+    return PAGE.replace('<div id="content">', f'<div id="content"><ul class="messagelist">{lis}</ul>', 1)
+
+
+def test_banners_by_level_and_success_messages():
+    page = _with_messages(("success", "Saved."), ("warning", "Careful"), ("error", "Nope"), ("", "FYI"))
+    f = AdminForm(FakeClient(), "/admin/app/thing/5/change/", page)
+    assert f.banners() == {"success": ["Saved."], "warning": ["Careful"], "error": ["Nope"], "info": ["FYI"]}
+    assert f.success_messages == ["Saved."]
+
+
+def test_check_banners_raises_with_messages():
+    page = _with_messages(("error", "Could not run it"), ("warning", "Slow"))
+    f = AdminForm(FakeClient(), "/admin/app/thing/5/change/", page)
+    with pytest.raises(AdminBannerError) as exc:
+        f.check_banners()
+    assert exc.value.errors == ["Could not run it"] and exc.value.warnings == ["Slow"]
+    assert "Could not run it" in str(exc.value) and isinstance(exc.value, FormError)
+    with pytest.raises(AdminBannerError):
+        f.check_banners(allow_warnings=True)          # the error still counts
+
+
+def test_check_banners_warning_and_success_rules():
+    f = AdminForm(FakeClient(), "/p/", _with_messages(("warning", "Slow"), ("success", "ok")))
+    with pytest.raises(AdminBannerError):
+        f.check_banners()
+    assert f.check_banners(allow_warnings=True)["success"] == ["ok"]
+    bare = AdminForm(FakeClient(), "/p/", PAGE)
+    assert bare.check_banners() is not None            # no banners and success not required: fine
+    with pytest.raises(AdminBannerError, match="no success message"):
+        bare.check_banners(require_success=True)
+
+
+def test_submit_checks_banners_only_when_asked():
+    page = _with_messages(("error", "Refused"))
+    f = form(FakeClient(answer=page))
+    assert f.submit("_save").banners()["error"] == ["Refused"]     # default: as in 0.2
+    with pytest.raises(AdminBannerError, match="Refused"):
+        form(FakeClient(answer=page)).submit("_save", check_banners=True)
+    ok = _with_messages(("success", "Saved."))
+    assert form(FakeClient(answer=ok)).submit("_save", check_banners=True, require_success=True).success_messages == ["Saved."]
+    with pytest.raises(AdminBannerError, match="no success message"):
+        form(FakeClient()).submit("_save", check_banners=True, require_success=True)

@@ -3,6 +3,17 @@
 All notable changes to this project are listed here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 - 2026-11-27
+
+### Added
+
+- Error banner check. After a form post the admin may answer 200 with an error or warning banner instead of redirecting. `AdminForm.banners()` returns the message list by level, `AdminForm.success_messages` the success texts, and `AdminForm.check_banners(require_success=False, allow_warnings=False)` raises the new `AdminBannerError` (a `FormError` subclass with `.errors`, `.warnings`, `.success`).
+- `AdminForm.submit(..., check_banners=True, require_success=False)` runs that check on the answer.
+
+### Changed
+
+- Nothing by default: `submit()` behaves as before unless `check_banners=True` is passed.
+
 ## 0.2.0 - 2026-11-26
 
 ### Added
